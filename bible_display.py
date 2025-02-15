@@ -51,7 +51,7 @@ def display_verse():
     verses = load_verses()
     reference, verse_text = get_random_verse(verses)
     
-    # Create a blank canvas with the display's dimensions in palette mode ("P")
+    # Create a blank canvas with the display's dimensions (in palette mode "P")
     img = Image.new("P", (inky_display.width, inky_display.height), color=inky_display.WHITE)
     draw = ImageDraw.Draw(img)
     
@@ -66,6 +66,7 @@ def display_verse():
     # ---------------------------
     flag = process_image("canada_flag.png", size=(60, 40))
     if flag:
+        # Paste the flag using its alpha channel as mask
         img.paste(flag, (10, 10), flag)
     
     # ---------------------------
@@ -75,15 +76,16 @@ def display_verse():
     if dove:
         dove_x = (inky_display.width - dove.width) // 2  # Center horizontally
         dove_y = 10  # 10 pixels from the top
-        img.paste(dove, (dove_x, dove_y), dove)
+        # Paste the dove WITHOUT the mask parameter so it displays as-is.
+        img.paste(dove, (dove_x, dove_y))
     
     # ---------------------------
     # Top Right: Draw Three Cross Symbols (Black)
     # ---------------------------
     cross_text = "✝  ✝  ✝"
-    cross_width, cross_height = draw.textsize(cross_text, font=font_symbols)
-    cross_x = inky_display.width - cross_width - 10  # 10 pixels from the right edge
-    cross_y = 10  # 10 pixels from the top
+    cross_width, _ = draw.textsize(cross_text, font=font_symbols)
+    cross_x = inky_display.width - cross_width - 10  # 10 pixels from right edge
+    cross_y = 10  # 10 pixels from top
     draw.text((cross_x, cross_y), cross_text, inky_display.BLACK, font=font_symbols)
     
     # ---------------------------
@@ -109,7 +111,6 @@ def display_verse():
     if lines and lines[-1] == "":
         lines.pop()  # Remove the last empty line
     
-    # Calculate vertical centering for the text block
     line_height = font_body.getsize("Ay")[1] + 5
     text_block_height = len(lines) * line_height
     start_y = (inky_display.height - text_block_height) // 2
@@ -122,11 +123,11 @@ def display_verse():
     # ---------------------------
     # Bottom: "Blessed Day" Message in Blue (using Inky's built-in BLUE)
     # ---------------------------
-    blessed_message = "Blessed Day"
+    blessed_message = "Have A Blessed Day!!!"
     blessed_width, blessed_height = draw.textsize(blessed_message, font=font_blessed)
     blessed_x = (inky_display.width - blessed_width) // 2
     blessed_y = inky_display.height - blessed_height - 10  # 10 pixels from the bottom
-    draw.text((blessed_x, blessed_y), blessed_message, inky_display.BLUE, font=font_blessed)
+    draw.text((blessed_x, blessed_y), blessed_message, inky_display.GREEN, font=font_blessed)
     
     # ---------------------------
     # Update the Display
