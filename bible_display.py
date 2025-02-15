@@ -1,5 +1,6 @@
 import json
 import random
+import time
 from PIL import Image, ImageDraw, ImageFont
 from inky.auto import auto
 
@@ -51,22 +52,21 @@ def display_verse():
     verses = load_verses()
     reference, verse_text = get_random_verse(verses)
     
-    # Create a blank canvas with the display's dimensions (in palette mode "P")
+    # Create a blank canvas with the display's dimensions (palette mode "P")
     img = Image.new("P", (inky_display.width, inky_display.height), color=inky_display.WHITE)
     draw = ImageDraw.Draw(img)
     
     # Load fonts (using system DejaVu fonts; adjust paths if necessary)
-    font_title   = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40)
-    font_body    = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
-    font_blessed = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 30)
-    font_symbols = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 36)
+    font_title   = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 50)
+    font_body    = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
+    font_blessed = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 32)
+    font_symbols = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40)
     
     # ---------------------------
     # Top Left: Display the Canadian Flag
     # ---------------------------
     flag = process_image("canada_flag.png", size=(60, 40))
     if flag:
-        # Paste the flag using its alpha channel as mask
         img.paste(flag, (10, 10), flag)
     
     # ---------------------------
@@ -76,7 +76,7 @@ def display_verse():
     if dove:
         dove_x = (inky_display.width - dove.width) // 2  # Center horizontally
         dove_y = 10  # 10 pixels from the top
-        # Paste the dove WITHOUT the mask parameter so it displays as-is.
+        # Paste the dove image as-is (without using its alpha mask)
         img.paste(dove, (dove_x, dove_y))
     
     # ---------------------------
@@ -89,12 +89,17 @@ def display_verse():
     draw.text((cross_x, cross_y), cross_text, inky_display.BLACK, font=font_symbols)
     
     # ---------------------------
-    # Center: Bible Verse Text (Reference and Verse)
+    # Center: Display Reference and Verse Text
     # ---------------------------
-    full_text = f"{reference}\n\n{verse_text}"
+    # We'll display the reference (in bold) above the verse text.
+    # Measure the reference text height.
+    ref_width, ref_height = draw.textsize(reference, font=font_title)
+    gap = 10  # gap between reference and verse text
+
+    # Wrap the verse text using the regular body font.
     max_text_width = inky_display.width - 40  # 20 pixels padding on each side
-    lines = []
-    for paragraph in full_text.split("\n"):
+    verse_lines = []
+    for paragraph in verse_text.split("\n"):
         words = paragraph.split()
         current_line = ""
         for word in words:
@@ -103,27 +108,37 @@ def display_verse():
             if test_width <= max_text_width:
                 current_line = test_line
             else:
-                lines.append(current_line)
+                verse_lines.append(current_line)
                 current_line = word
         if current_line:
-            lines.append(current_line)
-        lines.append("")  # Add an empty line between paragraphs
-    if lines and lines[-1] == "":
-        lines.pop()  # Remove the last empty line
+            verse_lines.append(current_line)
+        verse_lines.append("")  # empty line between paragraphs
+    if verse_lines and verse_lines[-1] == "":
+        verse_lines.pop()
+
+    # Calculate total height of the text block (reference + gap + verse)
+    line_height_body = font_body.getsize("Ay")[1] + 5
+    verse_text_height = len(verse_lines) * line_height_body
+    total_text_height = ref_height + gap + verse_text_height
+
+    start_y = (inky_display.height - total_text_height) // 2
+
+    # Draw the reference (centered horizontally)
+    ref_x = (inky_display.width - ref_width) // 2
+    draw.text((ref_x, start_y), reference, inky_display.BLACK, font=font_title)
     
-    line_height = font_body.getsize("Ay")[1] + 5
-    text_block_height = len(lines) * line_height
-    start_y = (inky_display.height - text_block_height) // 2
-    for i, line in enumerate(lines):
+    # Draw the verse text lines below the reference
+    current_y = start_y + ref_height + gap
+    for line in verse_lines:
         line_width, _ = draw.textsize(line, font=font_body)
-        x = (inky_display.width - line_width) // 2  # Center the line horizontally
-        y = start_y + i * line_height
-        draw.text((x, y), line, inky_display.BLACK, font=font_body)
-    
+        x = (inky_display.width - line_width) // 2
+        draw.text((x, current_y), line, inky_display.BLACK, font=font_body)
+        current_y += line_height_body
+
     # ---------------------------
-    # Bottom: "Blessed Day" Message in Blue (using Inky's built-in BLUE)
+    # Bottom: "Have A Blessed Day!!!" Message in Blue
     # ---------------------------
-    blessed_message = "Have A Blessed Day!!!"
+    blessed_message = "Blessed Day"
     blessed_width, blessed_height = draw.textsize(blessed_message, font=font_blessed)
     blessed_x = (inky_display.width - blessed_width) // 2
     blessed_y = inky_display.height - blessed_height - 10  # 10 pixels from the bottom
@@ -136,4 +151,7 @@ def display_verse():
     inky_display.show()
 
 if __name__ == "__main__":
-    display_verse()
+    REFRESH_INTERVAL = 60  # seconds
+    while True:
+        display_verse()
+        time.sleep(REFRESH_INTERVAL)
