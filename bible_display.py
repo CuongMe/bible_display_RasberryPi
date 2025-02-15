@@ -1,6 +1,6 @@
 import json
 import random
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont
 from inky.auto import auto
 
 # Load Inky Impression 7.3" display
@@ -32,23 +32,18 @@ def get_random_verse(verses):
         verse_text = verse_line
     return reference, verse_text
 
-def process_image(image_path, color="black", size=(50, 50)):
-    """Load an image, resize it, convert it to Inky-compatible format, and remove transparency."""
+def process_image(image_path, size=(50, 50)):
+    """
+    Load an image, resize it, and return it.
+    No color processing is applied.
+    """
     try:
-        img = Image.open(image_path).convert("RGBA")  # Open as RGBA (supports transparency)
-        img = img.resize(size, Image.ANTIALIAS)  # Resize to fit display
-
-        # Convert image to black, white, or red format for Inky Impression
-        grayscale = img.convert("L")  # Convert to grayscale first
-        if color == "red":
-            img = ImageOps.colorize(grayscale, black="black", white="red")
-        else:
-            img = ImageOps.colorize(grayscale, black="black", white="white")
-
-        return img.convert("RGBA")  # Ensure it's in the correct format before pasting
+        img = Image.open(image_path).convert("RGBA")
+        img.thumbnail(size, Image.ANTIALIAS)
+        return img
     except Exception as e:
         print(f"Error loading image {image_path}: {e}")
-        return None  # Return None if image fails to load
+        return None
 
 def display_verse():
     """Render the Bible verse and additional graphics onto the E-Ink display."""
@@ -58,37 +53,38 @@ def display_verse():
     # Create the canvas
     img = Image.new("P", (inky_display.width, inky_display.height), color=inky_display.WHITE)
     draw = ImageDraw.Draw(img)
-
-    # Load fonts
+    
+    # Load fonts (using DejaVu fonts; adjust paths if needed)
     font_title    = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40)
     font_body     = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
     font_blessed  = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 30)
     font_symbols  = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 36)
-
+    
     # ---------------------------
     # Top Left: Display Canadian Flag
     # ---------------------------
-    flag = process_image("canada_flag.png", color="red", size=(60, 40))  # Adjusted size
+    flag = process_image("canada_flag.png", size=(60, 40))  # Adjust size as needed
     if flag:
-        img.paste(flag, (10, 10), flag)  # Top-left corner
+        img.paste(flag, (10, 10), flag)  # Paste using the alpha channel for transparency
 
     # ---------------------------
-    # Top Middle: Display Dove (in Red)
+    # Top Middle: Display Dove (as-is)
     # ---------------------------
-    dove = process_image("dove.png", color="red", size=(50, 50))
+    dove = process_image("dove.png", size=(50, 50))
     if dove:
         dove_x = (inky_display.width - dove.width) // 2  # Center horizontally
         dove_y = 10  # 10 pixels from the top
         img.paste(dove, (dove_x, dove_y), dove)
-
+    
     # ---------------------------
     # Top Right: Draw Three Cross Symbols (Black)
     # ---------------------------
     cross_text = "✝  ✝  ✝"
-    cross_width, _ = draw.textsize(cross_text, font=font_symbols)
+    cross_width, cross_height = draw.textsize(cross_text, font=font_symbols)
     cross_x = inky_display.width - cross_width - 10  # 10px from right edge
-    draw.text((cross_x, 10), cross_text, inky_display.BLACK, font=font_symbols)
-
+    cross_y = 10  # 10px from top
+    draw.text((cross_x, cross_y), cross_text, inky_display.BLACK, font=font_symbols)
+    
     # ---------------------------
     # Center: Bible Verse Text (Reference and Verse)
     # ---------------------------
@@ -108,10 +104,10 @@ def display_verse():
                 current_line = word
         if current_line:
             lines.append(current_line)
-        lines.append("")  # Empty line for spacing
+        lines.append("")  # add an empty line for spacing
     if lines and lines[-1] == "":
         lines.pop()
-
+    
     line_height = font_body.getsize("Ay")[1] + 5
     text_block_height = len(lines) * line_height
     start_y = (inky_display.height - text_block_height) // 2
@@ -120,17 +116,17 @@ def display_verse():
         x = (inky_display.width - line_width) // 2
         y = start_y + i * line_height
         draw.text((x, y), line, inky_display.BLACK, font=font_body)
-
+    
     # ---------------------------
-    # Bottom: "Blessed Day" Message in Bold Blue
+    # Bottom: "Blessed Day" Message in Bold Blue (if color supported)
     # ---------------------------
-    blessed_message = "Blessed Day"
-    blue = (0, 0, 255)  # Blue RGB (may default to black if not supported)
+    blessed_message = "Have A Blessed Day!!!"
+    blue = (0, 0, 255)  # Blue RGB; may print as black if your display does not support color
     blessed_width, blessed_height = draw.textsize(blessed_message, font=font_blessed)
     blessed_x = (inky_display.width - blessed_width) // 2
     blessed_y = inky_display.height - blessed_height - 10
     draw.text((blessed_x, blessed_y), blessed_message, blue, font=font_blessed)
-
+    
     # ---------------------------
     # Update the Display
     # ---------------------------
