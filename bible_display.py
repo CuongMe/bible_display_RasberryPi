@@ -1,6 +1,6 @@
 import json
 import random
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 from inky.auto import auto
 
 # Load Inky Impression 7.3" display
@@ -16,7 +16,7 @@ def load_verses():
     try:
         with open(BIBLE_VERSES_FILE, "r", encoding="utf-8") as file:
             verses = json.load(file)
-        return verses  # list of strings
+        return verses  # verses is a list of strings
     except Exception as e:
         print(f"Error loading Bible verses: {e}")
         return []
@@ -27,6 +27,7 @@ def get_random_verse(verses):
     if not verses:
         return "No verses found.", "Please check the JSON file."
     verse_line = random.choice(verses)
+    # Expecting format: "Book Chapter:Verse - text"
     try:
         reference, verse_text = verse_line.split(" - ", 1)
     except ValueError:
@@ -45,36 +46,48 @@ def display_verse():
     img = Image.new("P", (inky_display.width, inky_display.height), color=inky_display.WHITE)
     draw = ImageDraw.Draw(img)
 
-    # Load fonts
-    # (Using DejaVu fonts here; adjust paths if necessary)
+    # Load fonts (using DejaVu fonts; adjust paths if needed)
     font_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40)
     font_body = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
     font_blessed = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 30)
     font_symbols = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 36)
 
-    # Top Left: Display Canadian flag image
+    # ---------------------------
+    # Top Middle: Display Red Dove
+    # ---------------------------
     try:
-        flag = Image.open("canada_flag.png")
-        # Resize flag if needed (e.g., to 50x50)
-        flag.thumbnail((50, 50))
-        img.paste(flag, (10, 10))
-    except Exception as e:
-        print(f"Error loading flag image: {e}")
+        dove = Image.open("dove.png").convert("RGBA")
+        dove.thumbnail((50, 50))  # Resize to approx. 50x50 pixels
 
-    # Top Right: Draw three cross symbols
+        # Optional: Tint the dove red if it's not already red.
+        # One approach: convert to grayscale then colorize.
+        gray = ImageOps.grayscale(dove)
+        # Create a red image and composite using the alpha channel of the dove.
+        red_dove = ImageOps.colorize(gray, black="black", white="red")
+        dove = red_dove.convert("RGBA")
+
+        dove_x = (inky_display.width - dove.width) // 2  # Center horizontally
+        dove_y = 10  # 10 pixels from the top
+        img.paste(dove, (dove_x, dove_y), dove)
+    except Exception as e:
+        print(f"Error loading dove image: {e}")
+
+    # ---------------------------
+    # Top Right: Draw Three Cross Symbols
+    # ---------------------------
     cross_text = "✝  ✝  ✝"
-    # Measure text width to place at top right with padding
     cross_width, cross_height = draw.textsize(cross_text, font=font_symbols)
-    cross_x = inky_display.width - cross_width - 10  # 10 px from right edge
-    cross_y = 10  # 10 px from top edge
+    cross_x = inky_display.width - cross_width - 10  # 10px from right edge
+    cross_y = 10  # 10px from top
     draw.text((cross_x, cross_y), cross_text, inky_display.BLACK, font=font_symbols)
 
-    # Center: Bible verse text (reference and verse) in the middle of the display
-    # First, combine reference and verse text, then center the block.
+    # ---------------------------
+    # Center: Bible Verse Text (Reference and Verse)
+    # ---------------------------
     full_text = f"{reference}\n\n{verse_text}"
+    max_text_width = inky_display.width - 40  # 20px padding on each side
 
-    # Wrap the text manually (this example uses a simple word-wrap)
-    max_width = inky_display.width - 40  # 20px padding on each side
+    # Simple word-wrap
     lines = []
     for paragraph in full_text.split("\n"):
         words = paragraph.split()
@@ -82,42 +95,41 @@ def display_verse():
         for word in words:
             test_line = f"{current_line} {word}".strip()
             test_width, _ = draw.textsize(test_line, font=font_body)
-            if test_width <= max_width:
+            if test_width <= max_text_width:
                 current_line = test_line
             else:
                 lines.append(current_line)
                 current_line = word
         if current_line:
             lines.append(current_line)
-        # Add an empty line between paragraphs
-        lines.append("")
-    # Remove the extra empty line added at the end
+        lines.append("")  # add an empty line between paragraphs
     if lines and lines[-1] == "":
         lines.pop()
 
-    # Calculate total height of text block
-    line_height = font_body.getsize("Ay")[1] + 5  # adding a little spacing
+    # Center the text block vertically
+    line_height = font_body.getsize("Ay")[1] + 5
     text_block_height = len(lines) * line_height
     start_y = (inky_display.height - text_block_height) // 2
-    # Draw each line centered
     for i, line in enumerate(lines):
         line_width, _ = draw.textsize(line, font=font_body)
         x = (inky_display.width - line_width) // 2
         y = start_y + i * line_height
         draw.text((x, y), line, inky_display.BLACK, font=font_body)
 
-    # Bottom: Display "Blessed Day" message in bold blue
+    # ---------------------------
+    # Bottom: "Blessed Day" Message in Bold Blue
+    # ---------------------------
     blessed_message = "Blessed Day"
-    # Blue color in a 1-bit E-Ink: many Inky boards support only black and white, but if your display supports color, you can try:
-    blue = (0, 0, 255)  # RGB Blue, adjust if needed
-    # Inky displays are usually limited in color - Inky pHAT, for example, is 3-color. Adjust as necessary.
+    # Use blue if supported; if not, you might use red or black.
+    blue = (0, 0, 255)  # This is an RGB tuple for blue.
     blessed_width, blessed_height = draw.textsize(blessed_message, font=font_blessed)
     blessed_x = (inky_display.width - blessed_width) // 2
     blessed_y = inky_display.height - blessed_height - 10
-    # If your display supports color, use blue; otherwise, this will likely print black.
     draw.text((blessed_x, blessed_y), blessed_message, blue, font=font_blessed)
 
-    # Update display
+    # ---------------------------
+    # Update the Display
+    # ---------------------------
     inky_display.set_image(img)
     inky_display.show()
 
