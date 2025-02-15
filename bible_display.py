@@ -10,28 +10,30 @@ inky_display.set_border(inky_display.WHITE)
 # Load Bible verses from JSON
 BIBLE_VERSES_FILE = "bible_verses.json"
 
-
 def load_verses():
     """Load Bible verses from JSON file."""
     try:
         with open(BIBLE_VERSES_FILE, "r", encoding="utf-8") as file:
             verses = json.load(file)
-        return verses
+        return verses  # verses is now a list of strings
     except Exception as e:
         print(f"Error loading Bible verses: {e}")
-        return {}
-
+        return []
 
 def get_random_verse(verses):
     """Get a random Bible verse from the loaded data."""
     if not verses:
         return "No verses found.", "Please check the JSON file."
 
-    book, chapter_verse = random.choice(list(verses.items()))
-    verse_text = chapter_verse["text"]
-    reference = f"{book} {chapter_verse['chapter']}:{chapter_verse['verse']}"
+    verse_line = random.choice(verses)
+    # Expecting format: "Book Chapter:Verse - text"
+    try:
+        reference, verse_text = verse_line.split(" - ", 1)
+    except ValueError:
+        # Fallback: if split fails, return the whole line as verse_text
+        reference = ""
+        verse_text = verse_line
     return reference, verse_text
-
 
 def display_verse():
     """Render the Bible verse onto the E-Ink display."""
@@ -67,13 +69,12 @@ def display_verse():
             y_offset += line_spacing
             current_line = word  # Start new line with this word
 
-    # Draw last line
+    # Draw the last line
     draw.text((30, y_offset), current_line, inky_display.BLACK, font=font_body)
 
     # Update display
     inky_display.set_image(img)
     inky_display.show()
-
 
 if __name__ == "__main__":
     display_verse()
