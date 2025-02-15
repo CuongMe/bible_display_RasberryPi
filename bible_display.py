@@ -138,7 +138,7 @@ def display_verse():
     # ---------------------------
     # Bottom: "Have A Blessed Day!!!" Message in Blue
     # ---------------------------
-    blessed_message = "Blessed Day"
+    blessed_message = "Have A Blessed Day!!!"
     blessed_width, blessed_height = draw.textsize(blessed_message, font=font_blessed)
     blessed_x = (inky_display.width - blessed_width) // 2
     blessed_y = inky_display.height - blessed_height - 10  # 10 pixels from the bottom
@@ -151,7 +151,7 @@ def display_verse():
     inky_display.show()
 
 if __name__ == "__main__":
-    REFRESH_INTERVAL = 60  # seconds
+    REFRESH_INTERVAL = 30  # seconds
     while True:
         display_verse()
         time.sleep(REFRESH_INTERVAL)
