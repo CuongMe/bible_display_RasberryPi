@@ -136,7 +136,7 @@ def display_verse():
         current_y += line_height_body
 
     # ---------------------------
-    # Bottom: "Have A Blessed Day!!!" Message in Blue
+    # Bottom: "Have A Blessed Day!!!" Message in Green
     # ---------------------------
     blessed_message = "Have A Blessed Day!!!"
     blessed_width, blessed_height = draw.textsize(blessed_message, font=font_blessed)
