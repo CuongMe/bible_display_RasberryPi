@@ -6,7 +6,6 @@ from inky.auto import auto
 
 # Initialize the Inky Impression 7-Color display
 inky_display = auto()
-inky_display.set_update_mode(inky_display.PARTIAL)
 inky_display.set_border(inky_display.WHITE)
 
 # Path to the Bible verses JSON file (list of strings in "Book Chapter:Verse - text" format)
