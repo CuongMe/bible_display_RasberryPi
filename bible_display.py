@@ -147,7 +147,7 @@ def display_verse():
     # ---------------------------
     # Update the Display
     # ---------------------------
-    inky_display.set_image  # Disables full screen clear
+    inky_display.set_image()  # Disables full screen clear
     inky_display.show()
 
 if __name__ == "__main__":
