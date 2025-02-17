@@ -151,7 +151,7 @@ def display_verse():
     inky_display.show()
 
 if __name__ == "__main__":
-    REFRESH_INTERVAL = 10  # seconds
+    REFRESH_INTERVAL = 25  # seconds
     while True:
         display_verse()
         time.sleep(REFRESH_INTERVAL)
