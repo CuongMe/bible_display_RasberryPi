@@ -33,14 +33,16 @@ def get_random_verse(verses):
         verse_text = verse_line
     return reference, verse_text
 
+image_cache = {}
+
 def process_image(image_path, size=(50, 50)):
-    """
-    Load an image, convert it to RGBA (to support transparency), and resize it.
-    No color conversion is applied.
-    """
+    if image_path in image_cache:
+        return image_cache[image_path]
+
     try:
         img = Image.open(image_path).convert("RGBA")
         img.thumbnail(size, Image.ANTIALIAS)
+        image_cache[image_path] = img  # Cache the processed image
         return img
     except Exception as e:
         print(f"Error loading image {image_path}:", e)
@@ -147,7 +149,7 @@ def display_verse():
     # ---------------------------
     # Update the Display
     # ---------------------------
-    inky_display.set_image(img, clear=False)  # Disables full screen clear
+    inky_display.set_image
     inky_display.show()
 
 if __name__ == "__main__":
